@@ -15,3 +15,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', fn() => auth()->user());
     Route::post('/logout', [AuthController::class, 'logout']);
 });
+
+use App\Http\Controllers\TransactionController;
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/deposit',  [TransactionController::class, 'deposit']);
+    Route::post('/transfer', [TransactionController::class, 'transfer']);
+    Route::post('/reverse',  [TransactionController::class, 'reverse']);
+});
+
