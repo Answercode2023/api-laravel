@@ -80,6 +80,21 @@ class TransactionService
         return DB::transaction(function () use ($transactionId, $requestedByUserId) {
             $original = $this->transactionRepo->find($transactionId);
 
+            $reversals = $this->transactionRepo->allByRelatedId($original->id);
+
+            $alreadyReversed = $reversals->firstWhere('type', 'reversal');
+
+            if ($alreadyReversed) {
+                // throw ValidationException::withMessages([
+                //     'transacao' => ['Essa transação já foi revertida anteriormente.'],
+                // ]);
+
+                return (object) [
+                    'message' => 'Essa transação já foi revertida anteriormente.',
+                ];
+            }
+
+
             if (!$original) {
                 throw ValidationException::withMessages([
                     'transacao' => ['Transação não encontrada.'],
@@ -126,5 +141,10 @@ class TransactionService
                 'related_id' => $original->id,
             ]);
         });
+    }
+
+    public function list(string $userId, array $filters = [])
+    {
+        return $this->transactionRepo->listByUser($userId, $filters);
     }
 }

@@ -61,4 +61,17 @@ class TransactionController extends Controller
 
         return response()->json($reversal, 201);
     }
+
+    public function index(Request $request)
+{
+    $filters = $request->only(['type', 'data_inicial', 'data_final']);
+
+    $transactions = $this->transactionService->list(
+        $request->user()->id,
+        $filters
+    );
+
+    return response()->json($transactions);
+}
+
 }
