@@ -31,3 +31,4 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 
+Route::middleware('auth:sanctum')->get('/transactions/export', [TransactionController::class, 'export']);

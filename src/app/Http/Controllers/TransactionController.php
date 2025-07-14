@@ -4,6 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Services\TransactionService;
+// use PDF;
+use Illuminate\Support\Facades\Response;
+use Barryvdh\DomPDF\Facade\Pdf;
+
 
 class TransactionController extends Controller
 {
@@ -63,15 +67,55 @@ class TransactionController extends Controller
     }
 
     public function index(Request $request)
-{
-    $filters = $request->only(['type', 'data_inicial', 'data_final']);
+    {
+        $filters = $request->only(['type', 'data_inicial', 'data_final']);
 
+        $transactions = $this->transactionService->list(
+            $request->user()->id,
+            $filters
+        );
+
+        return response()->json($transactions);
+    }
+
+
+
+
+public function export(Request $request)
+{
+    $format = $request->get('format', 'csv'); // default CSV
+    $filters = $request->only(['type', 'data_inicial', 'data_final']);
     $transactions = $this->transactionService->list(
         $request->user()->id,
-        $filters
+        $filters,
+        1000 // pega até 1000 registros para exportação
     );
 
-    return response()->json($transactions);
+    if ($format === 'pdf') {
+        $pdf = PDF::loadView('exports.transactions', ['transactions' => $transactions]);
+        return $pdf->download('extrato.pdf');
+    }
+
+    if ($format === 'csv') {
+        $csvContent = implode(",", ['ID', 'Tipo', 'Valor', 'Descrição', 'Data']) . "\n";
+
+        foreach ($transactions as $t) {
+            $csvContent .= implode(",", [
+                $t->id,
+                $t->type,
+                number_format($t->value, 2, '.', ''),
+                '"' . str_replace('"', '""', $t->description) . '"',
+                $t->created_at->format('Y-m-d H:i:s')
+            ]) . "\n";
+        }
+
+        return Response::make($csvContent, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="extrato.csv"',
+        ]);
+    }
+
+    return response()->json(['error' => 'Formato inválido'], 400);
 }
 
 }

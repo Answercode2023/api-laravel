@@ -143,8 +143,8 @@ class TransactionService
         });
     }
 
-    public function list(string $userId, array $filters = [])
+    public function list(string $userId, array $filters = [], int $limit = 10)
     {
-        return $this->transactionRepo->listByUser($userId, $filters);
+        return $this->transactionRepo->listByUser($userId, $filters, $limit);
     }
 }
