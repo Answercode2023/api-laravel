@@ -4,6 +4,8 @@ namespace App\Repositories;
 
 use App\Models\Transaction;
 use App\Interfaces\TransactionRepositoryInterface;
+use Illuminate\Support\Collection; // Certifique-se de importar Collection
+use App\Models\Balance; // Importe o modelo Balance
 
 class TransactionRepository implements TransactionRepositoryInterface
 {
@@ -24,8 +26,11 @@ class TransactionRepository implements TransactionRepositoryInterface
 
     public function allByUser(string $userId)
     {
-        return Transaction::where('user_id', $userId)
-            ->orWhere('to_user_id', $userId)
+        return Transaction::with(['user', 'toUser']) // Eager load the user and toUser relationships
+            ->where(function ($query) use ($userId) {
+                $query->where('user_id', $userId)
+                      ->orWhere('to_user_id', $userId);
+            })
             ->latest()
             ->get();
     }
@@ -59,5 +64,38 @@ class TransactionRepository implements TransactionRepositoryInterface
         // return $query->orderByDesc('created_at')->limit($limit)->get();
 
         return $query->orderByDesc('created_at')->paginate($limit);
+    }
+
+
+    /**
+     * Retorna o saldo atual e os somatórios de transações por tipo para um usuário.
+     */
+    public function getTransactionSummary(string $userId): array
+    {
+        // Saldo atual
+        $balance = Balance::where('user_id', $userId)->first();
+        $currentBalance = $balance ? (float) $balance->amount : 0.00;
+
+        // Soma de depósitos
+        $totalDeposits = Transaction::where('user_id', $userId)
+            ->where('type', 'deposit')
+            ->sum('value');
+
+        // Soma de valores recebidos de outros usuários (onde o user_id é o recebedor)
+        $totalReceived = Transaction::where('user_id', $userId)
+            ->where('type', 'receive')
+            ->sum('value');
+
+        // Soma de valores enviados para outros usuários (onde o user_id é o remetente)
+        $totalSent = Transaction::where('user_id', $userId)
+            ->where('type', 'transfer')
+            ->sum('value');
+
+        return [
+            'current_balance' => (float) $currentBalance,
+            'total_deposits' => (float) $totalDeposits,
+            'total_received' => (float) $totalReceived,
+            'total_sent' => (float) $totalSent,
+        ];
     }
 }

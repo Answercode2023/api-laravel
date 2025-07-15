@@ -12,6 +12,7 @@ interface TransactionRepositoryInterface
     public function findByRelatedId(string $relatedId): ?Transaction;
     public function allByRelatedId(string $relatedId);
     public function listByUser(string $userId, array $filters = []);
+    public function getTransactionSummary(string $userId): array;
 
 
 }

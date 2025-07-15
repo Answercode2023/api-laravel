@@ -27,12 +27,20 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $data = $request->validate([
-            'email'    => 'required|string|email',
-            'password' => 'required|string',
-        ]);
 
-        return response()->json($this->authService->login($data), 200);
+        try {
+            $data = $request->validate([
+                'email'    => 'required|string|email',
+                'password' => 'required|string',
+            ]);
+            //code...
+            return response()->json($this->authService->login($data), 200);
+        } catch (\Throwable $th) {
+            
+            return response()->json(['message' => 'Credenciais inválidas.'], 401);
+            //throw $th;
+        }
+
     }
 
     public function logout(Request $request)

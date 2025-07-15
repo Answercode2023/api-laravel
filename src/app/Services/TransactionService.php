@@ -6,6 +6,8 @@ use App\Interfaces\BalanceRepositoryInterface;
 use App\Interfaces\TransactionRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use  App\Models\User;
+
 
 class TransactionService
 {
@@ -20,6 +22,11 @@ class TransactionService
         $this->transactionRepo = $transactionRepo;
     }
 
+
+    /**
+     * Realiza um depósito no saldo do usuário informado.
+     * Cria uma transação do tipo "deposit" e incrementa o saldo.
+     */
     public function deposit(string $userId, float $value, string $description = null)
     {
         return DB::transaction(function () use ($userId, $value, $description) {
@@ -36,6 +43,12 @@ class TransactionService
         });
     }
 
+
+    /**
+     * Realiza uma transferência entre dois usuários.
+     * Cria duas transações: transfer (origem) e receive (destino).
+     * Ambos os saldos são ajustados no final da operação.
+     */
     public function transfer(string $fromUserId, string $toUserId, float $value, string $description = null)
     {
         return DB::transaction(function () use ($fromUserId, $toUserId, $value, $description) {
@@ -75,6 +88,11 @@ class TransactionService
         });
     }
 
+
+    /**
+     * Reverte uma transação caso ainda não tenha sido revertida anteriormente.
+     * A reversão ajusta os saldos envolvidos de acordo com o tipo original.
+     */
     public function reverse(string $transactionId, string $requestedByUserId)
     {
         return DB::transaction(function () use ($transactionId, $requestedByUserId) {
@@ -143,8 +161,51 @@ class TransactionService
         });
     }
 
+
+    /**
+     * Lista as transações do usuário com filtros opcionais (tipo e datas).
+     * Suporta paginação via limite (padrão: 10).
+     */
     public function list(string $userId, array $filters = [], int $limit = 10)
     {
         return $this->transactionRepo->listByUser($userId, $filters, $limit);
+    }
+
+
+    /**
+     * Lista todas as transações associadas ao usuário,
+     * tanto enviadas quanto recebidas.
+     */
+    public function getUserTransactions(string $userId)
+    {
+
+        return $this->transactionRepo->allByUser($userId);
+    }
+
+     /**
+     * Retorna uma transação específica pelo ID.
+     * Usado em fluxos que precisam de detalhes extras.
+     */
+    public function find(string $transactionId)
+    {
+        return $this->transactionRepo->find($transactionId);
+    }
+
+
+     /**
+     * Retorna um resumo financeiro do usuário:
+     * saldo atual, total depositado, transferido, recebido e estornado.
+     */
+    public function getUserStatement(string $userId): array
+    {
+        // Verifica se o usuário existe para tratamento de erro adequado
+        $userExists = User::where('id', $userId)->exists();
+        if (!$userExists) {
+            throw ValidationException::withMessages([
+                'user_id' => ['Usuário não encontrado.'],
+            ]);
+        }
+
+        return $this->transactionRepo->getTransactionSummary($userId);
     }
 }

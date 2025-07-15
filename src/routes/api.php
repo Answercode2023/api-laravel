@@ -28,7 +28,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/transactions', [TransactionController::class, 'index']);
+    Route::get('/transactions/user/{userId}', [TransactionController::class, 'getUserTransactions']);
+    Route::get('/users/{userId}/statement', [TransactionController::class, 'getUserStatement']);
 });
 
 
 Route::middleware('auth:sanctum')->get('/transactions/export', [TransactionController::class, 'export']);
+

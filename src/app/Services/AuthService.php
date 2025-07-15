@@ -32,6 +32,14 @@ class AuthService
     {
         $user = $this->userRepository->findByEmail($data['email']);
 
+
+        if (!$user) {
+            # code...
+            return ['message' => 'usuario não encontrado', 'status' => 404];
+        }
+
+
+
         if (!$user || !Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['Credenciais inválidas.'],
